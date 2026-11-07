@@ -15,7 +15,7 @@ import com.voidx.client.domain.model.MinecraftInstall
 import com.voidx.client.domain.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SharingStarted
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
