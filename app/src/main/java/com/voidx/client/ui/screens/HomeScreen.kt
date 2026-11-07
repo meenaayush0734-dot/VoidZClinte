@@ -53,14 +53,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voidx.client.data.minecraft.MinecraftDetector
 import com.voidx.client.ui.AppViewModel
 import com.voidx.client.ui.components.VoidXLogo
+import com.voidx.client.ui.theme.VoidBlue
 import com.voidx.client.ui.theme.VoidGreen
 import com.voidx.client.ui.theme.VoidGreenDeep
 import com.voidx.client.ui.theme.VoidSurface
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun HomeScreen(vm: AppViewModel) {
     val state by vm.home.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val minecraft = state.minecraft
 
@@ -74,7 +78,6 @@ fun HomeScreen(vm: AppViewModel) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Top bar
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             VoidXLogo(size = 38.dp)
             Spacer(Modifier.width(12.dp))
@@ -91,7 +94,6 @@ fun HomeScreen(vm: AppViewModel) {
             }
         }
 
-        // Version card. Android only lets us read the installed version.
         Card(
             colors = CardDefaults.cardColors(containerColor = VoidSurface),
             shape = RoundedCornerShape(20.dp),
@@ -141,7 +143,6 @@ fun HomeScreen(vm: AppViewModel) {
             }
         }
 
-        // PLAY button
         val enabled = minecraft?.installed == true && !busy
         val pulse by animateFloatAsState(
             targetValue = if (enabled) 1f else 0.97f,
@@ -186,7 +187,36 @@ fun HomeScreen(vm: AppViewModel) {
             }
         }
 
-        // Installed versions section
+        // Statistics: only values the launcher actually recorded.
+        Text("Statistics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Card(
+            colors = CardDefaults.cardColors(containerColor = VoidSurface),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Launches", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${stats.launchCount}", style = MaterialTheme.typography.titleLarge, color = VoidBlue, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(2f)) {
+                        Text("Last played", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            stats.lastPlayedAt?.let { formatTime(it) } ?: "Never",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
+                if (stats.recentLaunches.isNotEmpty()) {
+                    Text("Recent launches", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    stats.recentLaunches.reversed().take(5).forEach { ts ->
+                        Text("• ${formatTime(ts)}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
         Text("Installed versions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Card(
             colors = CardDefaults.cardColors(containerColor = VoidSurface),
@@ -214,6 +244,9 @@ fun HomeScreen(vm: AppViewModel) {
         Spacer(Modifier.height(72.dp))
     }
 }
+
+private fun formatTime(millis: Long): String =
+    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(millis))
 
 private fun openPlayStore(context: Context) {
     val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${MinecraftDetector.MINECRAFT_PACKAGE}"))
