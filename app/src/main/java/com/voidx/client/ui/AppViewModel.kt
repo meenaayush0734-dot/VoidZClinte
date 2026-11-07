@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.voidx.client.VoidXApp
 import com.voidx.client.data.packs.ImportException
+import com.voidx.client.data.prefs.LaunchStats
 import com.voidx.client.domain.model.AppPrefs
 import com.voidx.client.domain.model.DownloadItem
 import com.voidx.client.domain.model.DownloadState
@@ -15,7 +16,7 @@ import com.voidx.client.domain.model.MinecraftInstall
 import com.voidx.client.domain.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val prefs: StateFlow<AppPrefs> = container.preferences.prefs
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppPrefs())
+
+    val stats: StateFlow<LaunchStats> = container.preferences.stats
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LaunchStats())
+
+    val favorites: StateFlow<Set<String>> = container.preferences.favoritePackIds
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     private val _home = MutableStateFlow(HomeState())
     val home: StateFlow<HomeState> = _home.asStateFlow()
@@ -78,6 +85,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         _home.value = _home.value.copy(launchError = null)
         runCatching { getApplication<Application>().startActivity(intent) }
+            .onSuccess {
+                // Recorded only after Android accepted the launch intent.
+                viewModelScope.launch {
+                    container.preferences.recordLaunch(System.currentTimeMillis())
+                }
+            }
             .onFailure { _home.value = _home.value.copy(launchError = "Could not open Minecraft: ${it.message}") }
     }
 
@@ -112,7 +125,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { container.packs.delete(id) }
             _packs.value = _packs.value.filterNot { it.id == id }
+            container.preferences.setPackFavorite(id, false)
             showMessage("Removed from VoidX library.", isError = false)
+        }
+    }
+
+    fun toggleFavorite(id: String) {
+        viewModelScope.launch {
+            container.preferences.setPackFavorite(id, id !in favorites.value)
         }
     }
 
