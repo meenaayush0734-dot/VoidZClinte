@@ -1,5 +1,6 @@
 package com.voidx.client.overlay
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import android.app.Service
 import android.content.Intent
 import android.graphics.PixelFormat
