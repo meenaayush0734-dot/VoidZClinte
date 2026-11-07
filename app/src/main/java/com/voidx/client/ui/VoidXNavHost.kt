@@ -63,7 +63,7 @@ fun VoidXNavHost(vm: AppViewModel) {
                         selected = current == dest.route,
                         onClick = {
                             nav.navigate(dest.route) {
-                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                                popUpTo(nav.graph.startDestinationId) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
